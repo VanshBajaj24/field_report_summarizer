@@ -81,13 +81,16 @@ The following information must never appear in any published summary:
 
 ### Physical Security Information
 
-- Alarm codes
-- Door codes
-- Access instructions
-- Key locations
-- Lock combinations
-- Security procedures
-- Temporary access arrangements
+Any detail that could allow physical access to a site, building, plant room, or restricted area must be withheld. Detection must classify the kind of information being disclosed rather than matching a fixed list of phrases. Engineers describe the same detail in many different ways; the rule must catch the category regardless of wording.
+
+Categories:
+
+- **Access codes and PINs** — door codes, alarm codes, gate codes, entry codes, keypad codes, intercom codes, building codes, plant room codes, barrier codes, panel codes, passcodes, passwords, PIN numbers, lock combinations, and any numeric code presented alongside a security-context word. This includes reversed phrasing such as "the code for the gate" as well as direct forms like "gate code."
+- **Key storage and location** — spare keys, master keys, emergency keys, duplicate keys, key safes, key boxes, key cabinets, lockboxes, and any reference to where a key is held, left, stored, kept, or hidden.
+- **Security procedures and access arrangements** — security procedures, security instructions, temporary access arrangements, out-of-hours access procedures.
+- **Card, fob, and token access** — fob numbers, badge codes, access card IDs, token PINs.
+
+When physical security information is detected in technician notes, the entire sentence containing it must be removed rather than token-replaced. This prevents partial leakage of security context.
 
 Publication of physical-access information is treated as a security incident.
 
