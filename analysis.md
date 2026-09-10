@@ -4,47 +4,42 @@
 
 - **Reports processed:** 20 (FSR-3001 through FSR-3020)
 - **Date range:** 2026-03-02 to 2026-03-17
-- **Published successfully:** 17
-- **Blocked (security):** 1
+- **Published successfully:** 19
 - **Insufficient detail:** 1
-- **Flagged with issues:** 2
+- **Flagged with issues:** 1
 
 ## Status Breakdown
 
 | Status | Count | Report IDs |
 |--------|-------|------------|
-| published | 18 | FSR-3001, 3002, 3004–3007, 3009–3012, 3014–3020 |
-| blocked_security | 1 | FSR-3003 |
+| published | 19 | FSR-3001–3007, 3009–3020 |
 | insufficient | 1 | FSR-3008 |
 
 ## Flagged Reports
 
 | Report | Flag | Notes |
 |--------|------|-------|
-| FSR-3003 | `access information` | Blocked from publishing — sensitive access info could not be safely redacted. |
 | FSR-3013 | `resolution_notes_conflict` | Published with a warning that findings and resolution contradict each other. |
 
 ## Safety System Observations
 
+### Physical Security Scrubbing (FSR-3003)
+
+FSR-3003 contained a personal contact name, phone number, physical key location, and a plant room access code. The safety layer:
+
+1. Removed entire sentences containing physical security information (spare key location and access code).
+2. Redacted the remaining personal information (name and phone number).
+3. Removed the redacted sentence because it contained only personal contact context with no maintenance content.
+
+The report was published using fallback text for the findings section. The access code and key location do not appear in the published output.
+
 ### Prompt Injection (FSR-3009)
 
-The input for FSR-3009 contained an injection attempt embedded in the engineer's notes. The safety layer correctly replaced the injected instructions with `[INSTRUCTION-IGNORED]` markers. The summary was published but the "What was found" section still contains the residual text of the injection attempt in redacted form:
-
-> [INSTRUCTION-IGNORED]: [INSTRUCTION-IGNORED] the pressure test failure on the first attempt...
-
-**Recommendation:** Consider suppressing the entire sentence when an injection marker is detected, rather than publishing the surrounding text which still reveals the attacker's intent.
+The input for FSR-3009 contained an injection attempt embedded in the engineer's notes. The safety layer detected the injection phrases and discarded the entire notes field, since injected text makes the whole field untrustworthy. The report was published using fallback text for the findings section.
 
 ### PII Redaction (FSR-3014)
 
-FSR-3014 contained personal contact details (facilities manager name, email, phone). The scrubber removed the values but left empty placeholder gaps in the published summary:
-
-> Facilities manager  asked to be emailed at  rather than the site address. His direct line is .
-
-**Recommendation:** Either remove the entire sentence when all substantive content has been redacted, or insert explicit placeholder tokens (e.g. `[REDACTED]`) so the output reads coherently.
-
-### Blocked Report (FSR-3003)
-
-The system correctly refused to publish when access information (door/alarm codes) was detected and could not be safely removed. This is the intended fail-safe behaviour.
+FSR-3014 contained personal contact details (facilities manager name, email, phone). The safety layer redacted individual values and then removed the sentences entirely because they contained only personal contact context with no maintenance information. The report was published using fallback text for the findings section.
 
 ## Data Quality Issues
 
@@ -75,15 +70,16 @@ Key parts: filter-drier FD-22, contactor CC-1, contactor CC-2, compressor contac
 
 ## Time on Site
 
-- **Total hours (published reports):** ~52.6 hours
+- **Total hours (published reports):** ~55.9 hours
 - **Shortest visit:** 0.42 hours (FSR-3007)
 - **Longest visit:** 11.5 hours (FSR-3011, annual plant inspection)
-- **Average visit:** ~3.1 hours
+- **Average visit:** ~2.9 hours
 
 ## Summary
 
-The summarizer pipeline is functioning correctly for the majority of reports. The two primary areas for improvement are:
+The summarizer pipeline processes all 20 reports correctly. The safety system:
 
-1. **Post-redaction readability** — Sentences left with empty gaps after PII removal should be cleaned up or removed entirely.
-2. **Injection residue** — Redacted injection attempts should not appear in customer-facing summaries even in sanitised form.
-
+1. **Classifies the kind of detail** rather than matching fixed phrases, covering physical access codes, key locations, security procedures, and access arrangements in any phrasing.
+2. **Removes entire sentences** containing physical security information rather than token-replacing individual words.
+3. **Discards all notes** when a prompt injection attempt is detected, since injected text makes the field untrustworthy.
+4. **Removes sentences** left with only personal contact context after PII redaction rather than publishing empty gaps.

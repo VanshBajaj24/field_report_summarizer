@@ -10,7 +10,44 @@ EMAIL_RE = re.compile(
 )
 
 ACCESS_RE = re.compile(
-    r"(?i)(door code|alarm code|access code|spare key|key location)"
+    r"(?i)("
+    # Security-context word followed by code-type word
+    r"(?:door|alarm|access|entry|gate|building|keypad|intercom|"
+    r"plant\s*room|security|lock|padlock|barrier|panel)\s*"
+    r"(?:code|pin|number|combination|password|passcode)"
+    r"|"
+    # Code-type word followed by preposition + security-context word
+    r"(?:code|pin|combination|password|passcode)\s+"
+    r"(?:for|to|of)\s+(?:the\s+)?"
+    r"(?:door|gate|building|plant\s*room|entrance|entry|lift|"
+    r"elevator|car\s*park|parking|barrier|panel|room|premises|"
+    r"site|lock|padlock|safe|cabinet)"
+    r"|"
+    # Standalone always-security terms
+    r"\bpasscode\b|\bpassword\b|\bpin\s*(?:code|number)\b"
+    r"|"
+    # Code/pin/combination followed immediately by digits
+    r"\b(?:code|pin|combination)\s*(?:is|:|=)\s*\d+"
+    r"|"
+    # Key storage and location patterns
+    r"(?:spare|master|emergency|duplicate)\s*key"
+    r"|"
+    r"\bkey\s*(?:safe|box|location|cabinet|holder|hook|locker)\b"
+    r"|"
+    r"\bkey\s*(?:held|left|stored|kept|hidden|under|behind|with|at)\b"
+    r"|"
+    r"\blockbox\b|\block[\s-]*box\b"
+    r"|"
+    # Security procedures and access arrangements
+    r"\bsecurity\s*(?:procedure|arrangement|instruction|protocol|detail)\b"
+    r"|"
+    r"\btemporary\s*access\b"
+    r"|"
+    r"\bout[\s-]*of[\s-]*hours\s*access\b"
+    r"|"
+    # Card/fob/badge access details
+    r"(?:fob|badge|card|token)\s*(?:number|code|id|pin)"
+    r")"
 )
 
 INJECTION_RE = re.compile(
@@ -53,11 +90,34 @@ def contains_forbidden(text: str) -> list[str]:
     return reasons
 
 
+def _remove_security_sentences(text: str) -> str:
+    parts = re.split(r'(?<=[.!?])\s+', text)
+    clean = [p for p in parts if not ACCESS_RE.search(p)]
+    return ' '.join(clean).strip()
+
+
+def _clean_after_redaction(text: str) -> str:
+    parts = re.split(r'(?<=[.!?])\s+', text)
+    clean = []
+    for p in parts:
+        has_pii_context = NAME_HINT_RE.search(p)
+        has_redaction = '[REDACTED-' in p
+        if has_pii_context and has_redaction:
+            continue
+        clean.append(p)
+    return ' '.join(clean).strip()
+
+
 def scrub_notes(notes: str) -> str:
     if not notes:
         return ""
 
     text = notes
+
+    if INJECTION_RE.search(text):
+        return ""
+
+    text = _remove_security_sentences(text)
 
     text = PHONE_RE.sub(
         "[REDACTED-PHONE]",
@@ -86,15 +146,6 @@ def scrub_notes(notes: str) -> str:
         text,
     )
 
-    text = re.sub(
-        r"(?i)(access\s*code\s*is\s*)\d+",
-        r"\1[REDACTED-CODE]",
-        text,
-    )
-
-    text = INJECTION_RE.sub(
-        "[INSTRUCTION-IGNORED]",
-        text,
-    )
+    text = _clean_after_redaction(text)
 
     return text.strip()
